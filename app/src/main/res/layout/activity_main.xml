@@ -1,0 +1,29 @@
+<androidx.constraintlayout.widget.ConstraintLayout
+
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/death_note">
+
+    <Button
+        android:id="@+id/btn_registrar"
+        android:layout_width="203dp"
+        android:layout_height="88dp"
+        android:layout_marginTop="344dp"
+        android:text="Registrar Persona"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/btn_lista_muertos"
+        android:layout_width="251dp"
+        android:layout_height="96dp"
+        android:layout_marginTop="52dp"
+        android:text="Ver Lista de Muertos"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/btn_registrar" />
+</androidx.constraintlayout.widget.ConstraintLayout>
