@@ -4,150 +4,189 @@ import android.os.Bundle
 import android.os.CountDownTimer
 import android.text.Editable
 import android.text.TextWatcher
+import android.view.KeyEvent
 import android.view.View
-import android.widget.Button
-import android.widget.EditText
-import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import android.content.Intent
+import com.example.deathnote.databinding.ActivityRegistroDetallesBinding
+import com.google.firebase.firestore.FirebaseFirestore
 
 class RegistroDetallesActivity : AppCompatActivity() {
 
-    private lateinit var txtInfoPersona: TextView
-    private lateinit var etCausaMuerte: EditText
-    private lateinit var etDetalles: EditText
-    private lateinit var txtTemporizadorCausa: TextView
-    private lateinit var txtTemporizadorDetalles: TextView
-    private lateinit var btnRegistrar: Button
-    private lateinit var btnVolver: Button
-
-    private var causaTimer: CountDownTimer? = null
-    private var detallesTimer: CountDownTimer? = null
-
-    private var nombreCompleto: String = ""
-    private var apellidoCompleto: String = ""
+    private lateinit var binding: ActivityRegistroDetallesBinding
+    private lateinit var db: FirebaseFirestore
+    private var documentId: String? = null
 
     companion object {
-        private const val CAUSA_TIMER_DURATION = 40000L // 40 segundos
-        private const val DETALLES_TIMER_DURATION = 400000L // 6 minutos y 40 segundos (400 segundos)
+        private const val TIEMPO_CAUSA_MS = 40000L
+        private const val TIEMPO_DETALLES_MS = 400000L
+        private const val TIEMPO_POST_DETALLES_MS = 40000L
+        private const val CAUSA_DEFAULT = "ATAQUE AL CORAZON"
+        private const val DETALLES_DEFAULT = "Sin detalles adicionales"
     }
+
+    private lateinit var timerCausa: CountDownTimer
+    private lateinit var timerDetalles: CountDownTimer
+    private var timerPostDetalles: CountDownTimer? = null
+
+    private var detallesYaEscritos = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_registro_detalles)
+        binding = ActivityRegistroDetallesBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
-        // Obtener datos del intent
-        nombreCompleto = intent.getStringExtra("NOMBRE_COMPLETO") ?: ""
-        apellidoCompleto = intent.getStringExtra("APELLIDO_COMPLETO") ?: ""
+        db = FirebaseFirestore.getInstance()
 
-        // Inicializar vistas
-        txtInfoPersona = findViewById(R.id.txtInfoPersona)
-        etCausaMuerte = findViewById(R.id.etCausaMuerte)
-        etDetalles = findViewById(R.id.etDetalles)
-        txtTemporizadorCausa = findViewById(R.id.txtTemporizadorCausa)
-        txtTemporizadorDetalles = findViewById(R.id.txtTemporizadorDetalles)
-        btnRegistrar = findViewById(R.id.btnRegistrar)
-        btnVolver = findViewById(R.id.btnVolver)
-
-        // Configurar información de la persona
-        txtInfoPersona.text = "Completando registro para: $nombreCompleto $apellidoCompleto"
-
-        // Configurar estado inicial
-        etDetalles.isEnabled = false
-        txtTemporizadorDetalles.visibility = View.INVISIBLE
-
-        // Configurar listeners
-        etCausaMuerte.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                if (!s.isNullOrEmpty() && causaTimer == null) {
-                    iniciarTemporizadorCausa()
-                }
-            }
-
-            override fun afterTextChanged(s: Editable?) {
-                if (s.isNullOrEmpty() && causaTimer != null) {
-                    causaTimer?.cancel()
-                    causaTimer = null
-                    txtTemporizadorCausa.text = "40s"
-                    etDetalles.isEnabled = false
-                    etDetalles.text.clear()
-                    txtTemporizadorDetalles.visibility = View.INVISIBLE
-                    detallesTimer?.cancel()
-                    detallesTimer = null
-                }
-            }
-        })
-
-        btnRegistrar.setOnClickListener {
-            finalizarRegistro()
+        documentId = intent.getStringExtra("DOCUMENT_ID")
+        if (documentId == null) {
+            Toast.makeText(this, "Error: No se recibió el ID del documento", Toast.LENGTH_LONG).show()
+            finish()
+            return
         }
 
-        btnVolver.setOnClickListener {
-            onBackPressed()
+        binding.txtTemporizadorCausa.text = "40s"
+        binding.txtTemporizadorDetalles.text = "6:40"
+        binding.txtTemporizadorMuerte.visibility = View.GONE
+
+        iniciarTemporizadorCausa()
+
+        binding.etCausaMuerte.setOnKeyListener { _, keyCode, event ->
+            if (keyCode == KeyEvent.KEYCODE_ENTER && event.action == KeyEvent.ACTION_UP) {
+                detenerTemporizadorCausa()
+                if (binding.etCausaMuerte.text.toString().trim().isEmpty()) {
+                    binding.etCausaMuerte.setText(CAUSA_DEFAULT)
+                }
+                iniciarTemporizadorDetalles()
+                true
+            } else false
+        }
+
+        binding.etCausaMuerte.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) {
+                detenerTemporizadorCausa()
+                if (binding.etCausaMuerte.text.toString().trim().isEmpty()) {
+                    binding.etCausaMuerte.setText(CAUSA_DEFAULT)
+                }
+                iniciarTemporizadorDetalles()
+            }
+        }
+
+        binding.etDetalles.setOnFocusChangeListener { _, hasFocus ->
+            if (hasFocus && !::timerDetalles.isInitialized) {
+                iniciarTemporizadorDetalles()
+            }
+        }
+
+        binding.etDetalles.addTextChangedListener(object : TextWatcher {
+            override fun afterTextChanged(s: Editable?) {
+                if (!detallesYaEscritos && !s.isNullOrBlank()) {
+                    detallesYaEscritos = true
+                }
+            }
+
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+        })
+
+        binding.btnRegistrar.setOnClickListener {
+            detenerTemporizadorDetalles()
+
+            val detalles = binding.etDetalles.text.toString().trim()
+            if (detallesYaEscritos && detalles.isNotEmpty() && detalles != DETALLES_DEFAULT) {
+                iniciarTemporizadorPostDetalles()
+            } else {
+                guardarDetallesYFinalizar()
+            }
+        }
+
+        binding.btnVolver.setOnClickListener {
+            finish()
         }
     }
 
     private fun iniciarTemporizadorCausa() {
-        txtTemporizadorCausa.visibility = View.VISIBLE
-        causaTimer = object : CountDownTimer(CAUSA_TIMER_DURATION, 1000) {
+        timerCausa = object : CountDownTimer(TIEMPO_CAUSA_MS, 1000) {
             override fun onTick(millisUntilFinished: Long) {
-                val segundos = millisUntilFinished / 1000
-                txtTemporizadorCausa.text = "${segundos}s"
+                binding.txtTemporizadorCausa.text = "${millisUntilFinished / 1000}s"
             }
 
             override fun onFinish() {
-                txtTemporizadorCausa.text = "¡Tiempo!"
-                etDetalles.isEnabled = true
+                if (binding.etCausaMuerte.text.toString().trim().isEmpty()) {
+                    binding.etCausaMuerte.setText(CAUSA_DEFAULT)
+                }
+                iniciarTemporizadorDetalles()
+            }
+        }.start()
+    }
 
-                // Iniciar temporizador para detalles si hay causa de muerte
-                if (!etCausaMuerte.text.isNullOrEmpty()) {
-                    iniciarTemporizadorDetalles()
+    private fun detenerTemporizadorCausa() {
+        if (::timerCausa.isInitialized) timerCausa.cancel()
+    }
+
+    private fun iniciarTemporizadorDetalles() {
+        timerDetalles = object : CountDownTimer(TIEMPO_DETALLES_MS, 1000) {
+            override fun onTick(millisUntilFinished: Long) {
+                val minutes = (millisUntilFinished / 60000).toInt()
+                val seconds = ((millisUntilFinished % 60000) / 1000).toInt()
+                binding.txtTemporizadorDetalles.text = String.format("%d:%02d", minutes, seconds)
+            }
+
+            override fun onFinish() {
+                if (binding.etDetalles.text.toString().trim().isEmpty()) {
+                    binding.etDetalles.setText(DETALLES_DEFAULT)
+                    guardarDetallesYFinalizar()
                 }
             }
         }.start()
     }
 
-    private fun iniciarTemporizadorDetalles() {
-        txtTemporizadorDetalles.visibility = View.VISIBLE
-        detallesTimer = object : CountDownTimer(DETALLES_TIMER_DURATION, 1000) {
+    private fun detenerTemporizadorDetalles() {
+        if (::timerDetalles.isInitialized) timerDetalles.cancel()
+    }
+
+    private fun iniciarTemporizadorPostDetalles() {
+        binding.txtTemporizadorMuerte.visibility = View.VISIBLE
+
+        timerPostDetalles = object : CountDownTimer(TIEMPO_POST_DETALLES_MS, 1000) {
             override fun onTick(millisUntilFinished: Long) {
-                val minutos = millisUntilFinished / 60000
-                val segundos = (millisUntilFinished % 60000) / 1000
-                txtTemporizadorDetalles.text = "${minutos}:${String.format("%02d", segundos)}"
+                val seconds = (millisUntilFinished / 1000).toInt()
+                binding.txtTemporizadorMuerte.text = "Muerte en $seconds segundos..."
             }
 
             override fun onFinish() {
-                txtTemporizadorDetalles.text = "¡Tiempo!"
-                etDetalles.isEnabled = false
+                guardarDetallesYFinalizar()
             }
         }.start()
     }
 
-    private fun finalizarRegistro() {
-        // Aquí implementarías el guardado de los datos en tu base de datos
-        // Por ejemplo, usando SQLite, Room, Firebase, etc.
+    private fun guardarDetallesYFinalizar() {
+        val causa = binding.etCausaMuerte.text.toString().trim().ifEmpty { CAUSA_DEFAULT }
+        val detalles = binding.etDetalles.text.toString().trim().ifEmpty { DETALLES_DEFAULT }
 
-        // Para este ejemplo, solo mostramos un mensaje de éxito
-        Toast.makeText(
-            this,
-            "Registro completado exitosamente para $nombreCompleto $apellidoCompleto",
-            Toast.LENGTH_LONG
-        ).show()
+        val datosActualizados = mapOf(
+            "causaMuerte" to causa,
+            "detalles" to detalles
+        )
 
-        // Volver a la pantalla principal (cerrando todas las pantallas anteriores)
-        val intent = Intent(this, MainActivity::class.java)
-        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP
-        startActivity(intent)
-        finish()
+        documentId?.let { id ->
+            db.collection("personas_muertas")
+                .document(id)
+                .update(datosActualizados)
+                .addOnSuccessListener {
+                    Toast.makeText(this, "Detalles guardados exitosamente", Toast.LENGTH_SHORT).show()
+                    finish()
+                }
+                .addOnFailureListener { e ->
+                    Toast.makeText(this, "Error al guardar detalles: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        // Cancelar temporizadores para evitar fugas de memoria
-        causaTimer?.cancel()
-        detallesTimer?.cancel()
+        if (::timerCausa.isInitialized) timerCausa.cancel()
+        if (::timerDetalles.isInitialized) timerDetalles.cancel()
+        timerPostDetalles?.cancel()
     }
 }

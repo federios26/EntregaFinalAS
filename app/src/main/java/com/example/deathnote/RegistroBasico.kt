@@ -1,190 +1,197 @@
 package com.example.deathnote
 
-import android.os.Bundle
-import androidx.appcompat.app.AppCompatActivity
-
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.net.Uri
+import android.os.Bundle
 import android.provider.MediaStore
-import android.widget.Button
-import android.widget.EditText
-import android.widget.ImageView
 import android.widget.Toast
-import androidx.core.app.ActivityCompat
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import com.example.deathnote.R
+import com.example.deathnote.databinding.ActivityRegistroBasicoBinding
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
+import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
+import java.util.UUID
 
 class RegistroBasico : AppCompatActivity() {
 
-    private lateinit var etNombreCompleto: EditText
-    private lateinit var etApellidoCompleto: EditText
-    private lateinit var btnTomarFoto: Button
-    private lateinit var btnSeleccionarGaleria: Button
-    private lateinit var imgFoto: ImageView
-    private lateinit var btnContinuar: Button
+    private lateinit var binding: ActivityRegistroBasicoBinding
+    private val firestore = FirebaseFirestore.getInstance()
+    private val storage = FirebaseStorage.getInstance()
+    private var imageUri: Uri? = null
 
-    private var imagenUri: Uri? = null
-    private var imagenTomada = false
+    // Registros para manejar resultados
+    private val cameraPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) openCamera()
+        else showToast("Permiso de cámara requerido")
+    }
 
-    companion object {
-        private const val CAMERA_PERMISSION_CODE = 100
-        private const val CAMERA_REQUEST_CODE = 101
-        private const val GALLERY_REQUEST_CODE = 102
-        private const val READ_EXTERNAL_STORAGE_PERMISSION_CODE = 103
+    private val galleryPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) openGallery()
+        else showToast("Permiso de almacenamiento requerido")
+    }
+
+    private val cameraLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val bitmap = result.data?.extras?.get("data") as? Bitmap
+            bitmap?.let {
+                binding.imgFoto.setImageBitmap(it)
+                imageUri = saveImageToInternalStorage(it)
+            }
+        }
+    }
+
+    private val galleryLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            imageUri = result.data?.data
+            imageUri?.let { binding.imgFoto.setImageURI(it) }
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_registro_basico)
+        binding = ActivityRegistroBasicoBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
-        // Inicializar vistas
-        etNombreCompleto = findViewById(R.id.etNombreCompleto)
-        etApellidoCompleto = findViewById(R.id.etApellidoCompleto)
-        btnTomarFoto = findViewById(R.id.btnTomarFoto)
-        btnSeleccionarGaleria = findViewById(R.id.btnSeleccionarGaleria)
-        imgFoto = findViewById(R.id.imgFoto)
-        btnContinuar = findViewById(R.id.btnContinuar)
+        setupButtons()
+    }
 
-        // Configurar listeners
-        btnTomarFoto.setOnClickListener {
-            if (checkCameraPermission()) {
-                abrirCamara()
-            } else {
-                solicitarPermisosCamara()
-            }
-        }
+    private fun setupButtons() {
+        binding.btnTomarFoto.setOnClickListener { checkOrRequestCameraPermission() }
+        binding.btnSeleccionarGaleria.setOnClickListener { checkOrRequestGalleryPermission() }
+        binding.btnContinuar.setOnClickListener { validateAndContinue() }
+    }
 
-        btnSeleccionarGaleria.setOnClickListener {
-            if (checkGalleryPermission()) {
-                abrirGaleria()
-            } else {
-                solicitarPermisosGaleria()
-            }
-        }
-
-        btnContinuar.setOnClickListener {
-            continuarRegistro()
+    private fun checkOrRequestCameraPermission() {
+        when {
+            ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED -> openCamera()
+            else -> cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
         }
     }
 
-    private fun checkCameraPermission(): Boolean {
-        return ContextCompat.checkSelfPermission(
-            this,
-            Manifest.permission.CAMERA
-        ) == PackageManager.PERMISSION_GRANTED
+    private fun checkOrRequestGalleryPermission() {
+        when {
+            ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED -> openGallery()
+            else -> galleryPermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
+        }
     }
 
-    private fun solicitarPermisosCamara() {
-        ActivityCompat.requestPermissions(
-            this,
-            arrayOf(Manifest.permission.CAMERA),
-            CAMERA_PERMISSION_CODE
-        )
-    }
-
-    private fun checkGalleryPermission(): Boolean {
-        return ContextCompat.checkSelfPermission(
-            this,
-            Manifest.permission.READ_EXTERNAL_STORAGE
-        ) == PackageManager.PERMISSION_GRANTED
-    }
-
-    private fun solicitarPermisosGaleria() {
-        ActivityCompat.requestPermissions(
-            this,
-            arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE),
-            READ_EXTERNAL_STORAGE_PERMISSION_CODE
-        )
-    }
-
-    private fun abrirCamara() {
+    private fun openCamera() {
         val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-        startActivityForResult(intent, CAMERA_REQUEST_CODE)
+        cameraLauncher.launch(intent)
     }
 
-    private fun abrirGaleria() {
+    private fun openGallery() {
         val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
-        startActivityForResult(intent, GALLERY_REQUEST_CODE)
+        galleryLauncher.launch(intent)
     }
 
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        when (requestCode) {
-            CAMERA_PERMISSION_CODE -> {
-                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    abrirCamara()
-                } else {
-                    Toast.makeText(
-                        this,
-                        "Se requiere permiso de cámara para continuar",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            }
-            READ_EXTERNAL_STORAGE_PERMISSION_CODE -> {
-                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    abrirGaleria()
-                } else {
-                    Toast.makeText(
-                        this,
-                        "Se requiere permiso de acceso a galería para continuar",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            }
+    private fun validateAndContinue() {
+        val nombre = binding.etNombreCompleto.text.toString().trim()
+        val apellido = binding.etApellidoCompleto.text.toString().trim()
+
+        when {
+            nombre.isEmpty() -> binding.etNombreCompleto.error = "Nombre requerido"
+            apellido.isEmpty() -> binding.etApellidoCompleto.error = "Apellido requerido"
+            imageUri == null -> showToast("Se requiere una imagen")
+            else -> uploadImageAndSaveData(nombre, apellido)
         }
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (resultCode == RESULT_OK) {
-            when (requestCode) {
-                CAMERA_REQUEST_CODE -> {
-                    val imageBitmap = data?.extras?.get("data") as Bitmap
-                    imgFoto.setImageBitmap(imageBitmap)
-                    imagenTomada = true
-                }
-                GALLERY_REQUEST_CODE -> {
-                    val selectedImage = data?.data
-                    imagenUri = selectedImage
-                    imgFoto.setImageURI(selectedImage)
-                    imagenTomada = true
-                }
+    private fun uploadImageAndSaveData(nombre: String, apellido: String) {
+        val imageRef = storage.reference.child("personas/${UUID.randomUUID()}")
+
+        if (imageUri != null && imageUri.toString().startsWith("file://")) {
+            // CASO: imagen tomada con la cámara
+            try {
+                val file = File(imageUri!!.path!!)
+                val bytes = file.readBytes() // convierte la imagen en bytes
+
+                imageRef.putBytes(bytes) // sube los bytes, no la Uri
+                    .addOnSuccessListener {
+                        imageRef.downloadUrl.addOnSuccessListener { downloadUri ->
+                            savePersonData(nombre, apellido, downloadUri.toString())
+                        }
+                    }
+                    .addOnFailureListener { e ->
+                        showToast("Error al subir imagen: ${e.message}")
+                    }
+            } catch (e: IOException) {
+                showToast("Error leyendo imagen: ${e.message}")
             }
+
+        } else if (imageUri != null) {
+            // CASO: imagen desde galería (esto sí funciona normalmente)
+            imageRef.putFile(imageUri!!)
+                .addOnSuccessListener {
+                    imageRef.downloadUrl.addOnSuccessListener { downloadUri ->
+                        savePersonData(nombre, apellido, downloadUri.toString())
+                    }
+                }
+                .addOnFailureListener { e ->
+                    showToast("Error al subir imagen: ${e.message}")
+                }
+        } else {
+            showToast("No se encontró imagen para subir")
         }
     }
 
-    private fun continuarRegistro() {
-        // Validar campos obligatorios
-        if (etNombreCompleto.text.toString().trim().isEmpty()) {
-            etNombreCompleto.error = "Este campo es obligatorio"
-            return
+
+    private fun savePersonData(nombre: String, apellido: String, imageUrl: String) {
+        // Objeto sin ID (Firestore lo generará automáticamente)
+        val persona = hashMapOf(
+            "nombre" to nombre,
+            "apellido" to apellido,
+            "imagenUrl" to imageUrl,
+            "causaMuerte" to "", // Se completará después
+            "detalles" to "" // Se completará después
+        )
+
+        firestore.collection("personas_muertas")
+            .add(persona) // Firestore genera el ID aquí
+            .addOnSuccessListener { documentReference ->
+                showToast("Registro exitoso")
+                startActivity(
+                    Intent(this, RegistroDetallesActivity::class.java).apply {
+                        putExtra("DOCUMENT_ID", documentReference.id) // Pasamos el ID generado
+                    }
+                )
+                finish()
+            }
+            .addOnFailureListener { e ->
+                showToast("Error al guardar: ${e.message}")
+            }
+    }
+
+    private fun saveImageToInternalStorage(bitmap: Bitmap): Uri? {
+        return try {
+            val fileName = "${UUID.randomUUID()}.jpg"
+            val file = File(cacheDir, fileName)
+            FileOutputStream(file).use { fos ->
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos)
+            }
+            Uri.fromFile(file)
+        } catch (e: IOException) {
+            e.printStackTrace()
+            null
         }
+    }
 
-        if (etApellidoCompleto.text.toString().trim().isEmpty()) {
-            etApellidoCompleto.error = "Este campo es obligatorio"
-            return
-        }
-
-        if (!imagenTomada) {
-            Toast.makeText(this, "Por favor adjunte una imagen", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        // Continuar al siguiente formulario
-        val intent = Intent(this, RegistroDetallesActivity::class.java)
-        intent.putExtra("NOMBRE_COMPLETO", etNombreCompleto.text.toString().trim())
-        intent.putExtra("APELLIDO_COMPLETO", etApellidoCompleto.text.toString().trim())
-        // La imagen se manejará a través de una base de datos o almacenamiento local
-        // en una aplicación real, aquí solo pasamos los datos de texto
-        startActivity(intent)
-
+    private fun showToast(message: String) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
     }
 }

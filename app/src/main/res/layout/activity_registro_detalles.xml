@@ -1,142 +1,164 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".RegistroDetallesActivity"
     android:background="@drawable/death_note"
-    >
+    android:padding="16dp"
+    tools:context=".RegistroDetallesActivity">
+
+    <!-- Título principal -->
     <TextView
         android:id="@+id/txtTitulo"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="368dp"
+        android:layout_marginTop="268dp"
+        android:gravity="center"
         android:text="Detalles del Registro"
         android:textColor="@android:color/white"
         android:textSize="24sp"
         android:textStyle="bold"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent" />
 
+    <!-- Subtítulo -->
     <TextView
         android:id="@+id/txtInfoPersona"
-        android:layout_width="350dp"
-        android:layout_height="25dp"
-        android:layout_marginTop="16dp"
-        android:text="Completando registro para: "
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center"
+        android:text="Completando registro para: [Nombre]"
         android:textColor="@android:color/white"
         android:textSize="16sp"
         android:textStyle="italic"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/txtTitulo"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/txtTitulo" />
+        app:layout_constraintEnd_toEndOf="parent" />
 
+    <!-- Causa de muerte -->
     <TextView
         android:id="@+id/lblCausaMuerte"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="12dp"
-        android:layout_marginTop="12dp"
-        android:text="Causa de muerte (opcional):"
+        android:layout_marginTop="4dp"
+        android:text="Causa de muerte (obligatoria):"
         android:textColor="@android:color/white"
         android:textSize="16sp"
+        app:layout_constraintTop_toBottomOf="@id/txtInfoPersona"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/txtInfoPersona" />
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <EditText
         android:id="@+id/etCausaMuerte"
-        android:layout_width="420dp"
-        android:layout_height="23dp"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="20dp"
-        android:background="@android:color/white"
+        android:layout_width="0dp"
+        android:layout_height="48dp"
+        android:layout_marginTop="8dp"
+        android:background="@android:drawable/edit_text"
         android:hint="Ingrese causa de muerte"
-        android:inputType="text"
         android:textColor="@android:color/black"
-        android:textColorHint="#AAAAAA"
+        android:inputType="text"
+        android:imeOptions="actionNext"
+        app:layout_constraintTop_toBottomOf="@id/lblCausaMuerte"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/lblCausaMuerte" />
+        app:layout_constraintEnd_toStartOf="@id/txtTemporizadorCausa" />
 
     <TextView
         android:id="@+id/txtTemporizadorCausa"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
         android:text="40s"
-        android:textSize="16sp"
         android:textColor="#FF0000"
+        android:textStyle="bold"
         app:layout_constraintTop_toTopOf="@id/etCausaMuerte"
         app:layout_constraintBottom_toBottomOf="@id/etCausaMuerte"
-        app:layout_constraintEnd_toEndOf="@id/etCausaMuerte"
-        android:layout_marginEnd="8dp" />
+        app:layout_constraintEnd_toEndOf="parent" />
 
+    <!-- Detalles opcionales -->
     <TextView
         android:id="@+id/lblDetalles"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="4dp"
         android:text="Detalles (opcional):"
         android:textColor="@android:color/white"
         android:textSize="16sp"
+        app:layout_constraintTop_toBottomOf="@id/etCausaMuerte"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/etCausaMuerte" />
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <EditText
         android:id="@+id/etDetalles"
-        android:layout_width="420dp"
-        android:layout_height="86dp"
-        android:layout_marginTop="4dp"
-        android:background="@android:color/white"
-        android:gravity="top|start"
+        android:layout_width="0dp"
+        android:layout_height="120dp"
+        android:layout_marginTop="8dp"
+        android:background="@android:drawable/edit_text"
         android:hint="Ingrese detalles adicionales"
-        android:inputType="textMultiLine"
-        android:minLines="3"
         android:textColor="@android:color/black"
-        android:textColorHint="#AAAAAA"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.352"
+        android:inputType="textMultiLine"
+        app:layout_constraintTop_toBottomOf="@id/lblDetalles"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/lblDetalles" />
+        app:layout_constraintEnd_toStartOf="@id/txtTemporizadorDetalles" />
 
     <TextView
         android:id="@+id/txtTemporizadorDetalles"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginEnd="8dp"
         android:text="6:40"
-        android:textSize="16sp"
         android:textColor="#FF0000"
+        android:textStyle="bold"
         app:layout_constraintTop_toTopOf="@id/etDetalles"
-        app:layout_constraintEnd_toEndOf="@id/etDetalles"
-        android:layout_marginEnd="8dp" />
+        app:layout_constraintBottom_toBottomOf="@id/etDetalles"
+        app:layout_constraintEnd_toEndOf="parent" />
 
+    <!-- Botón Finalizar -->
     <Button
         android:id="@+id/btnRegistrar"
-        android:layout_width="398dp"
-        android:layout_height="49dp"
-        android:layout_marginTop="12dp"
-        android:backgroundTint="@android:color/white"
-        android:text="Finalizar Registro"
-        android:textColor="@android:color/black"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.464"
+        android:layout_width="0dp"
+        android:layout_height="48dp"
+        android:layout_marginTop="4dp"
+        android:backgroundTint="#FF0000"
+        android:text="FINALIZAR REGISTRO"
+        android:textColor="@android:color/white"
+        app:layout_constraintTop_toBottomOf="@id/etDetalles"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/etDetalles" />
+        app:layout_constraintEnd_toEndOf="parent" />
 
+    <!-- Botón Volver -->
     <Button
         android:id="@+id/btnVolver"
-        android:layout_width="210dp"
-        android:layout_height="46dp"
+        android:layout_width="0dp"
+        android:layout_height="48dp"
         android:layout_marginTop="8dp"
-        android:backgroundTint="@android:color/white"
-        android:text="Volver"
-        android:textColor="@android:color/black"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.581"
+        android:backgroundTint="#424242"
+        android:text="VOLVER"
+        android:textColor="@android:color/white"
+        app:layout_constraintTop_toBottomOf="@id/btnRegistrar"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/btnRegistrar" />
+        app:layout_constraintEnd_toEndOf="parent" />
 
+    <TextView
+        android:id="@+id/txtTemporizadorMuerte"
+        android:layout_width="273dp"
+        android:layout_height="32dp"
+        android:layout_marginTop="8dp"
+        android:shadowColor="#AA000000"
+        android:shadowDx="2"
+        android:shadowDy="2"
+        android:shadowRadius="2"
+        android:text="Muerte en 40s..."
+        android:textColor="#FF0000"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+    Volver" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

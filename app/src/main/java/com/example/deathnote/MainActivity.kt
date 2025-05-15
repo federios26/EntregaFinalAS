@@ -4,8 +4,6 @@ import android.content.Intent
 import android.os.Bundle
 import android.widget.Button
 import androidx.appcompat.app.AppCompatActivity
-import com.example.deathnote.ListaMuertosActivity
-import com.example.deathnote.R
 
 class MainActivity : AppCompatActivity() {
 
@@ -13,8 +11,8 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val btnRegistrar = findViewById<Button>(R.id.btn_registrar)
-        val btnVerLista = findViewById<Button>(R.id.btn_lista_muertos)
+        val btnRegistrar = findViewById<Button>(R.id.btnRegistrarPersona)
+        val btnVerLista = findViewById<Button>(R.id.btnVerListaMuertos)
 
         btnRegistrar.setOnClickListener {
             val intent = Intent(this, RegistroBasico::class.java)
@@ -25,6 +23,5 @@ class MainActivity : AppCompatActivity() {
             val intent = Intent(this, ListaMuertosActivity::class.java)
             startActivity(intent)
         }
-
     }
 }

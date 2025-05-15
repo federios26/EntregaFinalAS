@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "371890192495",
+    "project_id": "deathnoteappfinish",
+    "storage_bucket": "deathnoteappfinish.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:371890192495:android:f10c65f799bb792725cd9a",
+        "android_client_info": {
+          "package_name": "com.example.deathnote"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCJYCMPkEZqLPfqU6QJ9jopW0bhh7tRGEc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:371890192495:android:d5d10417e2fc36c625cd9a",
+        "android_client_info": {
+          "package_name": "com.example.deathnoteapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCJYCMPkEZqLPfqU6QJ9jopW0bhh7tRGEc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
